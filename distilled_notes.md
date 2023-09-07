@@ -19,7 +19,7 @@ movies = pd.DataFrame({
     'genre': ['Action', 'Comedy', 'Action', 'Comedy', 'Drama']
 })
 
-# Initialize the TF-IDF vectorizer and remove English stop words
+# Initialize the (Term Frequency Inverse Document Frequency) TF-IDF vectorizer and remove English stop words
 tfidf_vectorizer = TfidfVectorizer(stop_words='english')
 
 # Transform the 'genre' column into TF-IDF vectors
@@ -51,3 +51,26 @@ def recommend(title):
 # Test the function with 'Movie A'
 print(recommend('Movie A'))
 ```
+Below are a few notes about the code snippet above:   
+
+1\. The initialization step determines the parameters that should be accounted for while doing the feature extraction during the fitting step. In this example it sets `stop_words=english` to avoid common english words during feature extraction.
+
+2\. For move genres the TF-IDF is calculated assuming that each move is a single document. Hence, TF is the frequency of each word within the document which is 1 for all the movies and IDF represents the rarity of each genre across all 5 movies which is calculated using the following equation:    
+$
+\text{IDF}(t) = \log\left(\frac{1+ \text{Number of Documents}}{1 + \text{Number of Documents containing term \(t\)}}\right) + 1   
+$   
+Hence the IDF for action and comedy movies would be ln(6/3)+1 = 1.693 (i.e., TF-IDF = 1*1.693 = 1.693) and for drama movie would be ln(6/2)+1 = 2.0986 (i.e., TF-IDF = 1*2.0986 = 2.0986). As such, since the drama genre is relative rarer, it has a higher score.    
+`Note` that The Scikit-learn  library normalizes the TF-IDF scores and since each document contains only one word, the score for each document would be equal to 1 after normalization. Below is the code snippet to check the TF-IDF scores for each move genre:
+
+```python 
+dense_matrix = tfidf_matrix.todense()
+df = pd.DataFrame(dense_matrix, columns=tfidf_vectorizer.get_feature_names_out())
+print(df)
+   action  comedy  drama
+0     1.0     0.0    0.0
+1     0.0     1.0    0.0
+2     1.0     0.0    0.0
+3     0.0     1.0    0.0
+4     0.0     0.0    1.0
+```
+As presented in the code snippet above, the Scikit-learn  stores the TF-IDF scores in `sparse` format which doesn't include zeros for storage efficiency. In order to visualize the score, the score matrix much first be converted into a dense format which also includes zeros as printed above in a form of a pandas dataset.
