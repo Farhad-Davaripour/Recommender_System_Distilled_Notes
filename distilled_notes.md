@@ -60,7 +60,7 @@ $
 \text{IDF}(t) = \log\left(\frac{1+ \text{Number of Documents}}{1 + \text{Number of Documents containing term \(t\)}}\right) + 1   
 $   
 Hence the IDF for action and comedy movies would be ln(6/3)+1 = 1.693 (i.e., TF-IDF = 1*1.693 = 1.693) and for drama movie would be ln(6/2)+1 = 2.0986 (i.e., TF-IDF = 1*2.0986 = 2.0986). As such, since the drama genre is relative rarer, it has a higher score.    
-`Note` that The Scikit-learn  library normalizes the TF-IDF scores and since each document contains only one word, the score for each document would be equal to 1 after normalization. Below is the code snippet to check the TF-IDF scores for each move genre:
+`Note` that The Scikit-learn library normalizes the TF-IDF scores and since each document contains only one word, the score for each document would be equal to 1 after normalization. Below is the code snippet to check the TF-IDF scores for each move genre:
 
 ```python 
 dense_matrix = tfidf_matrix.todense()
@@ -73,4 +73,15 @@ print(df)
 3     0.0     1.0    0.0
 4     0.0     0.0    1.0
 ```
-As presented in the code snippet above, the Scikit-learn  stores the TF-IDF scores in `sparse` format which doesn't include zeros for storage efficiency. In order to visualize the score, the score matrix much first be converted into a dense format which also includes zeros as printed above in a form of a pandas dataset.
+As presented in the code snippet above, the Scikit-learn stores the TF-IDF scores in `sparse` format which doesn't include zeros for storage efficiency. In order to visualize the score, the score matrix much first be converted into a dense format which also includes zeros as printed above in a form of a pandas dataset. It is also worth noting that in the above example there are 3 unique genres (i.e., tokens) across all the movies (i.e., documents), hence each TF-IDF vector which represents a movie has 3 elements.
+
+3\. The similarity matrix obtained using linear kernel in combination with TF-IDF serves as a measurement to quantify the similarity between different documents. The matrix is symmetric and all the diagonal elements are equal to 1 as each document is perfectly similar to itself. The similarity between vectors is often obtained using Cosine Similarity ($ \cos(\theta) = \frac{\vec{A} \cdot \vec{B}}{||\vec{A}|| \times ||\vec{B}||}
+\ $) which is the dot product of the vectors divided by their Euclidean norms of magnitudes. In the example above, since the TF-IDF scores are normalized to 1, the similarity matrix has only binary elements as presented below:
+
+``` python
+array([[1., 0., 1., 0., 0.],
+       [0., 1., 0., 1., 0.],
+       [1., 0., 1., 0., 0.],
+       [0., 1., 0., 1., 0.],
+       [0., 0., 0., 0., 1.]])
+```
