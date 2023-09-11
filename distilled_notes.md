@@ -76,7 +76,7 @@ print(df)
 As presented in the code snippet above, the Scikit-learn stores the TF-IDF scores in `sparse` format which doesn't include zeros for storage efficiency. In order to visualize the score, the score matrix much first be converted into a dense format which also includes zeros as printed above in a form of a pandas dataset. It is also worth noting that in the above example there are 3 unique genres (i.e., tokens) across all the movies (i.e., documents), hence each TF-IDF vector which represents a movie has 3 elements.
 
 3\. The similarity matrix obtained using linear kernel in combination with TF-IDF serves as a measurement to quantify the similarity between different documents. The matrix is symmetric and all the diagonal elements are equal to 1 as each document is perfectly similar to itself. The similarity between vectors is often obtained using Cosine Similarity ($ \cos(\theta) = \frac{\vec{A} \cdot \vec{B}}{||\vec{A}|| \times ||\vec{B}||}
-\ $) which is the dot product of the vectors divided by their Euclidean norms of magnitudes. In the example above, since the TF-IDF scores are normalized to 1, the similarity matrix has only binary elements as presented below:
+\ $) which is the dot product of the vectors divided by their Euclidean norms (i.e., magnitudes). In the example above, since the TF-IDF scores are normalized to 1, the similarity matrix has only binary elements as presented below:
 
 ``` python
 array([[1., 0., 1., 0., 0.],
@@ -85,3 +85,75 @@ array([[1., 0., 1., 0., 0.],
        [0., 1., 0., 1., 0.],
        [0., 0., 0., 0., 1.]])
 ```
+
+## Collaborative-based filtering
+The collaborative-based filtering is applied in applications such as when user 1 liked or purchased product A and B and user 2 liked or purchased product A, B, and C and according to this approach is probably that user A would also be interested in product C. Similar to content-based filtering, let's dive into a simple example in python:
+
+``` python
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
+
+# Create a sample DataFrame with user IDs, movie IDs, and ratings
+ratings = pd.DataFrame({
+    'user_id': [1, 1, 2, 2, 3, 3, 4, 4, 5],
+    'movie_id': [1, 2, 1, 3, 3, 4, 2, 4, 5],
+    'rating': [5, 4, 4, 3, 2, 4, 5, 3, 1]
+})
+
+# Create a user-item interaction matrix
+interaction_matrix = pd.pivot_table(ratings, index='user_id', columns='movie_id', values='rating')
+
+# Replace NaN with 0, because we will consider the absence of rating as a zero rating
+interaction_matrix = interaction_matrix.fillna(0)
+print(interaction_matrix,'\n')
+
+# Initialize the Nearest Neighbors model
+knn = NearestNeighbors(metric='cosine', algorithm='brute')
+
+# Fit the model on the interaction matrix
+knn.fit(interaction_matrix)
+
+# Function to recommend movies for a given user
+for user_id in range(1,5):
+  # Get the index of the user
+  user_index = interaction_matrix.index.get_loc(user_id)
+
+  # Find the nearest neighbors for the given user
+  distances, indices = knn.kneighbors(interaction_matrix.iloc[user_index, :].values.reshape(1, -1), n_neighbors=2)
+  print(f"for user id {user_id}, the distance: {distances[0]}, and indices are {indices[0]}, ")
+
+  # Get the list of similar users
+  similar_users = interaction_matrix.index[indices.flatten()].tolist()
+
+  # Remove the user itself from the list
+  similar_users.remove(user_id)
+
+  # Get the list of movies rated by the similar users
+  recommended_movies = interaction_matrix.loc[similar_users].mean().sort_values(ascending=False).index.tolist()
+
+  # Remove the movies already rated by the user
+  rated_movies = interaction_matrix.columns[interaction_matrix.loc[user_id] > 0].tolist()
+  recommended_movies = [m for m in recommended_movies if m not in rated_movies]
+  print(f"The recommended movies are {recommended_movies} \n")
+
+```
+Below are a few notes about the code snippet above:   
+1\. The interaction matrix for different user_ids is as below:
+```  PYTHON
+movie_id    1    2    3    4    5
+user_id                          
+1         5.0  4.0  0.0  0.0  0.0
+2         4.0  0.0  3.0  0.0  0.0
+3         0.0  0.0  2.0  4.0  0.0
+4         0.0  5.0  0.0  3.0  0.0
+5         0.0  0.0  0.0  0.0  1.0 
+```
+Each row in the interaction matrix represents a vector and the similarity between different vectors is calculated using cosine similarity. For instance the distance between vector 1, 2 that represent user_id 1 and 2 is calculated as below:
+
+$
+\text{Cosine Similarity} = \frac{(5.0 \times 4.0) + (4.0 \times 0.0) + (0.0 \times 3.0) + (0.0 \times 0.0) + (0.0 \times 0.0)}{\sqrt{5.0^2 + 4.0^2 + 0.0^2 + 0.0^2 + 0.0^2} \times \sqrt{4.0^2 + 0.0^2 + 3.0^2 + 0.0^2 + 0.0^2}} ≈0.625
+$
+
+The cosine similarity calculates the cosine of the angle between two vectors. Hence, the closer the vectors are, the closer the angle is to 0, making the cosine similarity closer to 1. To convert this into a cosine distance, we subtract the cosine similarity from 1, leading to 1 − 0.625 = 0.375.
